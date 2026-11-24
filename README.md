@@ -2,7 +2,7 @@
 
 This GitHub Action publishes a built WordPress theme to a DataSide site. It uploads the theme, waits while the site restarts with it, and reports whether the site accepted it. If the site rejects the theme, the site keeps its previous theme version and the run fails with the reason.
 
-For the full setup steps, read *Maintaining your DataSide WordPress theme from GitHub*, the customer theme guide from DataSide support. This README covers only the action.
+For the full setup steps, read [Maintaining your DataSide WordPress theme from GitHub](docs/customer-theme-guide.md). This README covers only the action.
 
 ## Workflow file
 
@@ -89,7 +89,7 @@ The code is valid for one use within 24 hours. After the link exists, every push
 | No binding request matches this code. | The site has no link, and no code request exists for this repository and branch. The code may come from a run on another branch. Run the workflow by hand without `bind-code` to request a new code. |
 | The theme API refused the binding code: ... | The code is wrong, expired, or was tried too many times. The message says which. Request a new code. |
 | The theme API refused the publish: ... | The site refused the theme. The message gives the reason, for example that the site is linked to another repository or branch. |
-| Another theme version stayed on trial for 20 minutes. | An earlier publish has not finished. Check the site, then run the workflow again. |
+| The theme API refused the publish for 20 minutes: ... | An earlier theme version stayed on trial for the whole time. The message gives the reason. Check the site, then run the workflow again. |
 | S3 refused the upload: HTTP ... | The upload failed. Run the workflow again. If it fails again, contact DataSide support. |
 | DataSide rejected theme version ...: *reason* | The site checked the theme and refused it, for example `php-lint` for a PHP syntax error. The run annotates the file and line when known. The annotation points at the built theme, which is your source file only when the theme needs no build. Fix the cause and push again. |
 | No result after 20 minutes. | The site did not report a result in time. Check the site, then run the workflow again. |

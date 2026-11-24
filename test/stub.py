@@ -18,13 +18,14 @@ UPLOAD_URL = "https://theme-bucket.s3.example/themes/p-1.tar.gz?X-Amz-Signature=
 PUBLISH_ID = "p-1"
 calls = {}
 published = {}
+publish_tokens = set()
 
 
 def error(status, code):
     return status, {"error": code, "message": f"stub refusal {code}"}
 
 
-def theme_api(route, body, count):
+def theme_api(route, body, count, token):
     """Returns the status and body that the theme API sends for this scenario."""
     if route == "POST /bind":
         if "code" not in body:
@@ -35,6 +36,12 @@ def theme_api(route, body, count):
             return error(400, "wrong-code")
         return 200, {"status": "bound"}
     if route == "POST /publish":
+        # Like the theme API, records the token before any later step can fail.
+        if token in publish_tokens:
+            return error(409, "token-reused")
+        publish_tokens.add(token)
+        if SCENARIO == "publish-5xx" and count == 1:
+            return error(500, "internal")
         if SCENARIO == "not-bound":
             return error(403, "not-bound")
         if SCENARIO == "trial-in-progress" and count == 1:
@@ -98,7 +105,7 @@ class Handler(BaseHTTPRequestHandler):
         calls[route] = calls.get(route, 0) + 1
         body = json.loads(raw) if raw else {}
         token_ok = bool(auth) and auth.startswith("Bearer fake-oidc-token-")
-        status, answer = theme_api(route, body, calls[route]) if token_ok else error(401, "invalid-token")
+        status, answer = theme_api(route, body, calls[route], auth) if token_ok else error(401, "invalid-token")
         self.record({"route": route, "body": body, "status": status})
         self.reply(status, answer)
 
