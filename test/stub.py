@@ -51,8 +51,6 @@ def theme_api(route, body, count, token):
         return 200, {"publish_id": PUBLISH_ID, "upload_url": UPLOAD_URL,
                      "upload_headers": {"x-amz-checksum-sha256": checksum, "content-length": str(body["size"])}}
     if route == "POST /commit":
-        if SCENARIO == "commit-trial" and count == 1:
-            return error(409, "trial-in-progress")
         if body != {"publish_id": PUBLISH_ID, "sha256": published.get("sha256"), "theme": "acme"}:
             return error(400, "bad-request")
         return 202, {"status": "trial"}

@@ -143,14 +143,7 @@ fi
 
 # 7. Commit.
 echo "Committing theme version $publish_id"
-deadline=$((SECONDS + WAIT_SECONDS))
-while :; do
-  api POST /commit "$(jq -n --arg id "$publish_id" --arg sha256 "$sha256" --arg theme "$THEME_NAME" '{publish_id: $id, sha256: $sha256, theme: $theme}')"
-  [[ $ERROR == trial-in-progress ]] || break
-  echo "Another theme version is on trial; retrying in $POLL_SECONDS seconds"
-  ((SECONDS < deadline)) || fail "The theme API refused the commit for 20 minutes: ${MESSAGE:-HTTP $STATUS}. Check the site, then run the workflow again."
-  sleep "$POLL_SECONDS"
-done
+api POST /commit "$(jq -n --arg id "$publish_id" --arg sha256 "$sha256" --arg theme "$THEME_NAME" '{publish_id: $id, sha256: $sha256, theme: $theme}')"
 [[ $STATUS == 202 ]] || fail_api "the commit"
 echo "publish-id=$publish_id" >>"$OUTPUT"
 
