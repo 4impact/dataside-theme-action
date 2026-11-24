@@ -1,0 +1,32 @@
+name: Release
+
+# Push a tag vX.Y.Z on main. This workflow creates the GitHub release and moves the major tag (vX) to the same commit.
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Refuse a tag that is not on main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --generate-notes \
+            --notes "To pin this release, use commit $GITHUB_SHA."
+      - name: Move the major tag
+        run: |
+          major=${GITHUB_REF_NAME%%.*}
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git tag -fa "$major" -m "$major (moves to the newest $major.x.y)" "$GITHUB_SHA"
+          git push -f origin "refs/tags/$major"
