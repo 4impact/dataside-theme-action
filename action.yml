@@ -1,0 +1,38 @@
+name: Publish theme to DataSide
+description: Publishes a built WordPress theme to a DataSide site and waits for the site to accept it.
+author: 4impact
+branding:
+  icon: upload-cloud
+  color: blue
+
+inputs:
+  site:
+    description: The site's well-known host, for example wordpress-prod.123456789012.app.dataside.cloud.
+    required: true
+  path:
+    description: The directory that holds the built theme, relative to the workspace.
+    required: true
+  bind-code:
+    description: The binding code from the DataSide email. Enter it only in the one manual run that creates the binding.
+    required: false
+    default: ""
+
+outputs:
+  publish-id:
+    description: The publish ID of the theme version that this run published. Empty if the run did not publish.
+    value: ${{ steps.publish.outputs.publish-id }}
+  status:
+    description: good or rejected, from the theme API. Empty if the run stopped before a result.
+    value: ${{ steps.publish.outputs.status }}
+
+runs:
+  using: composite
+  steps:
+    - id: publish
+      shell: bash
+      # Inputs go through env, never into the script text: GitHub substitutes ${{ }} before the shell parses it.
+      env:
+        SITE: ${{ inputs.site }}
+        THEME_PATH: ${{ inputs.path }}
+        BIND_CODE: ${{ inputs.bind-code }}
+      run: '"$GITHUB_ACTION_PATH/publish.sh"'
