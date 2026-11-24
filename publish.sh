@@ -108,9 +108,13 @@ echo "Requesting an upload for $SITE"
 deadline=$((SECONDS + WAIT_SECONDS))
 while :; do
   api POST /publish "$(jq -n --arg sha256 "$sha256" --argjson size "$size" '{sha256: $sha256, size: $size}')"
-  [[ $ERROR == trial-in-progress ]] || break
-  ((SECONDS < deadline)) || fail "Another theme version stayed on trial for 20 minutes. Check the site, then run the workflow again."
-  echo "Another theme version is on trial; retrying in $POLL_SECONDS seconds"
+  case $ERROR in
+    trial-in-progress) echo "Another theme version is on trial; retrying in $POLL_SECONDS seconds" ;;
+    # curl resends the same token when it retries a 5xx response, and the theme API may have recorded it already.
+    token-reused) echo "The theme API had already seen this token; retrying with a new one in $POLL_SECONDS seconds" ;;
+    *) break ;;
+  esac
+  ((SECONDS < deadline)) || fail "The theme API refused the publish for 20 minutes: ${MESSAGE:-HTTP $STATUS}. Check the site, then run the workflow again."
   sleep "$POLL_SECONDS"
 done
 if [[ $ERROR == not-bound ]]; then

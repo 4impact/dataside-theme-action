@@ -112,6 +112,10 @@ run trial-in-progress "$SITE" theme ""
 check "trial-in-progress: retries, then succeeds" test "$CODE" = 0
 check "trial-in-progress: publish sent twice" test "$(routes)" = "POST /publish,POST /publish,PUT upload,POST /commit,GET /result,GET /result"
 
+run publish-5xx "$SITE" theme ""
+check "5xx on publish: curl retries, then the action retries token-reused with a new token" test "$(jq -r '"\(.route) \(.status)"' "$WORK/requests.log" | head -n3 | paste -sd, -)" = "POST /publish 500,POST /publish 409,POST /publish 200"
+check "5xx on publish: succeeds" test "$CODE" = 0
+
 run s3-refuses "$SITE" theme ""
 check "S3 refuses: fails with status and S3 code" has "S3 refused the upload: HTTP 400 BadDigest"
 
