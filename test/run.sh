@@ -76,7 +76,7 @@ check "good: succeeds" test "$CODE" = 0
 check "good: request order" test "$(routes)" = "POST /publish,PUT upload,POST /commit,GET /result,GET /result"
 check "good: upload matches the signed checksum and size" requested '"route": "PUT upload", "ok": true'
 check "good: outputs" bash -c "grep -qx 'publish-id=p-1' '$WORK/output' && grep -qx 'status=good' '$WORK/output'"
-check "good: step summary names site and publish ID" grep -qF "\`p-1\` to \`$SITE\`" "$WORK/summary"
+check "good: step summary" grep -qF "$SITE installed theme version p-1 as \`acme\`. WordPress serves it while \`acme\` is the active theme." "$WORK/summary"
 check "good: log holds no token or pre-signed URL" secrets_hidden
 check "good: tokens are masked" has "::add-mask::fake-oidc-token-1"
 check "good: commit sends theme" requested '"theme": "acme"'
@@ -115,6 +115,10 @@ run trial-in-progress "$SITE" theme ""
 check "trial-in-progress: retries, then succeeds" test "$CODE" = 0
 check "trial-in-progress: publish sent twice" test "$(routes)" = "POST /publish,POST /publish,PUT upload,POST /commit,GET /result,GET /result"
 
+run commit-trial "$SITE" theme ""
+check "commit trial-in-progress: retries, then succeeds" test "$CODE" = 0
+check "commit trial-in-progress: commit sent twice" test "$(routes)" = "POST /publish,PUT upload,POST /commit,POST /commit,GET /result,GET /result"
+
 run publish-5xx "$SITE" theme ""
 check "5xx on publish: curl retries, then the action retries token-reused with a new token" test "$(jq -r '"\(.route) \(.status)"' "$WORK/requests.log" | head -n3 | paste -sd, -)" = "POST /publish 500,POST /publish 409,POST /publish 200"
 check "5xx on publish: succeeds" test "$CODE" = 0
@@ -151,6 +155,7 @@ check "missing theme: sends nothing" no_requests
 run good "$SITE" theme "" THEME_NAME="Bad/Name"
 check "bad theme: fails" test "$CODE" != 0
 check "bad theme: names the input and value" has "The theme input must be a theme folder name"
+check "bad theme: names the value" has "Got 'Bad/Name'"
 check "bad theme: sends nothing" no_requests
 
 run good "$SITE" missing ""

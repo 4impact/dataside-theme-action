@@ -1,6 +1,6 @@
 # Publish theme to DataSide
 
-This GitHub Action publishes a built WordPress theme to a DataSide site. It uploads the theme, waits while the site restarts with it, and reports whether the site accepted it. If the site rejects the theme, the theme name keeps its newest good theme version, if it has one, and the run fails with the reason.
+This GitHub Action publishes a built WordPress theme to a DataSide site. It uploads the theme, waits while the site restarts with it, and reports whether the site accepted it. If the site rejects the theme, the run fails with the reason. The theme name keeps its newest good theme version, if it has one.
 
 For the full setup steps, read [Maintaining your DataSide WordPress theme from GitHub](docs/customer-theme-guide.md). This README covers only the action.
 
@@ -73,7 +73,7 @@ To pin an exact version, replace `@v1` with the full commit SHA of a release. Th
 Each site accepts themes from one repository and one branch. You link them once per site:
 
 1. In the repository's **Actions** tab, choose **Run workflow** on the publishing branch, with the `bind-code` box empty. The run fails with "Binding requested", and your DataSide account email receives a code.
-2. Choose **Run workflow** again on the same branch, and paste the code into the `bind-code` box. This run links the repository to the site and publishes the theme. It also activates the theme named in `theme`, if that theme is not already active.
+2. Choose **Run workflow** again on the same branch, and paste the code into the `bind-code` box. This run links the repository to the site and publishes the theme. If the site's active theme is not the theme named in `theme`, activate that theme once in WordPress admin, under **Appearance > Themes**.
 
 The code is valid for one use within 24 hours. After the link exists, every push to the publishing branch publishes. Do not put the code in the workflow file or in a repository secret; enter it only as the manual-run input.
 
