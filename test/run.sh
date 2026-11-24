@@ -45,7 +45,7 @@ run() {
     GITHUB_OUTPUT="$WORK/output" GITHUB_STEP_SUMMARY="$WORK/summary" \
     ACTIONS_ID_TOKEN_REQUEST_URL="https://token.example/token?api-version=2.0" \
     ACTIONS_ID_TOKEN_REQUEST_TOKEN=fake-request-token \
-    SITE="$site" THEME_PATH="$path" BIND_CODE="$code" "$@" "$ROOT/publish.sh" 2>&1)
+    SITE="$site" THEME_PATH="$path" BIND_CODE="$code" THEME_NAME=acme "$@" "$ROOT/publish.sh" 2>&1)
   CODE=$?
   set -e
 }
@@ -79,11 +79,14 @@ check "good: outputs" bash -c "grep -qx 'publish-id=p-1' '$WORK/output' && grep 
 check "good: step summary names site and publish ID" grep -qF "\`p-1\` to \`$SITE\`" "$WORK/summary"
 check "good: log holds no token or pre-signed URL" secrets_hidden
 check "good: tokens are masked" has "::add-mask::fake-oidc-token-1"
+check "good: commit sends theme" requested '"theme": "acme"'
+check "good: success line names the theme" has "as \`acme\`"
 
 run rejected "$SITE" theme ""
 check "rejected: fails" test "$CODE" = 1
 check "rejected: annotation names file and line" has "::error file=theme/inc/blocks.php,line=42::DataSide rejected theme version p-1: php-lint"
 check "rejected: status output" output_is "status=rejected"
+check "rejected: message names the theme" has "\`acme\` keeps its newest good theme version, if it has one."
 
 run not-bound "$SITE" theme ""
 check "not-bound, no code: fails" test "$CODE" = 1
@@ -140,6 +143,15 @@ check "site outside app.dataside.cloud: fails" has "must be a DataSide host endi
 check "site outside app.dataside.cloud: sends nothing" no_requests
 run good "$SITE.evil.example" theme ""
 check "site with app.dataside.cloud as a prefix: fails" has "must be a DataSide host"
+
+run good "$SITE" theme "" THEME_NAME=""
+check "missing theme: fails" test "$CODE" != 0
+check "missing theme: names the input" has "The theme input must be"
+check "missing theme: sends nothing" no_requests
+run good "$SITE" theme "" THEME_NAME="Bad/Name"
+check "bad theme: fails" test "$CODE" != 0
+check "bad theme: names the input and value" has "The theme input must be a theme folder name"
+check "bad theme: sends nothing" no_requests
 
 run good "$SITE" missing ""
 check "path not a directory: fails" has "is not a directory"
