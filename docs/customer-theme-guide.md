@@ -15,12 +15,12 @@ You keep your WordPress theme in your own GitHub repository. A GitHub Actions wo
 ## Set up once per site
 
 1. Copy the DataSide template to `.github/workflows/dataside-theme.yml` in your repository.
-2. In that file, set the site address, the branch that publishes to that site, and the directory that holds your built theme. For example, the `preprod` branch publishes to the preprod site and `main` publishes to the prod site.
+2. In that file, set the site address, the publishing branch, the directory that holds your built theme, and `theme`, your theme folder name. For example, the `preprod` branch publishes to the preprod site and `main` publishes to the prod site. To replace a theme that the site already uses, set `theme` to that theme's folder name.
 3. In that file, add your build commands (for example `npm ci && npm run build`) before the DataSide publish action, `4impact/dataside-theme-action`. If your theme needs no build, add none.
 4. Commit and push the file.
 5. In the repository's **Actions** tab, choose **Run workflow** on the publishing branch, with the `bind-code` box empty. The run stops, and your DataSide account email receives a one-time code.
 6. Choose **Run workflow** again on the same branch, and paste the code into the `bind-code` box. This run links the repository to the site and publishes your theme for the first time.
-7. In WordPress admin, open **Appearance > Themes** and activate the theme named `site-theme`.
+7. If the site's active theme already has the name in `theme`, do nothing. Otherwise, in WordPress admin, open **Appearance > Themes** and activate the theme of that name once.
 
 The code is valid for one use within 24 hours. If nobody in your organisation asked for a code, ignore the email.
 
@@ -29,7 +29,7 @@ flowchart LR
     A[Add the workflow file<br/>from the template] --> B[Run workflow<br/>with no code]
     B --> C[DataSide account email<br/>receives a code]
     C --> D[Run workflow again<br/>with the code]
-    D --> E[Theme is published;<br/>activate site-theme<br/>in WordPress admin]
+    D --> E[Theme is published;<br/>activate the theme folder you set,<br/>if it is not already active]
 ```
 
 ### Sample workflow file
@@ -72,6 +72,7 @@ jobs:
                 && 'wordpress-prod.123456789012.app.dataside.cloud'
                 || 'wordpress-preprod.123456789012.app.dataside.cloud' }}
           path: dist/theme
+          theme: my-theme                       # your theme folder name
           bind-code: ${{ inputs.bind-code }}
 ```
 
@@ -79,8 +80,8 @@ jobs:
 
 Push to the publishing branch. The workflow run builds the theme, sends it to DataSide, and waits while your site restarts with it. This usually takes 2 to 5 minutes. The result of the run tells you the outcome:
 
-- **Green tick:** your site now serves the new theme version.
-- **Red cross:** DataSide rejected the new theme version, and your site keeps its previous version. The run log gives the reason, for example a PHP syntax error with the file and line. Fix the cause and push again.
+- **Green tick:** DataSide installed the new theme version under your `theme` name. WordPress serves it while that name is the active theme.
+- **Red cross:** DataSide rejected the new theme version, and your `theme` name keeps its newest good theme version, if it has one. The run log gives the reason, for example a PHP syntax error with the file and line. Fix the cause and push again.
 
 GitHub emails you when a run you started fails. To roll back a change, revert the commit and push.
 
@@ -88,9 +89,15 @@ GitHub emails you when a run you started fails. To roll back a change, revert th
 flowchart LR
     P[Push to the<br/>publishing branch] --> R[Workflow run:<br/>build, then publish]
     R --> S[Site restarts and<br/>checks the new theme]
-    S -->|checks pass| G[Run succeeds:<br/>new theme is live]
-    S -->|checks fail| F[Run fails with the reason:<br/>site keeps the previous theme]
+    S -->|checks pass| G[Run succeeds:<br/>theme version installed under its name]
+    S -->|checks fail| F[Run fails with the reason:<br/>theme name keeps its newest good version]
 ```
+
+## Change the theme name
+
+Push with a new `theme` name to publish under that name. WordPress keeps using the old name until an administrator activates the new name in **Appearance > Themes**.
+
+A green tick for a name that is not active covers only the file checks. The site's restart checks do not load that theme. Check the site straight after you activate the new name. To fix a fault, push a fixed theme version.
 
 ## What your built theme must have
 
@@ -100,5 +107,6 @@ flowchart LR
 - No need to write files inside the theme directory while the site runs. The site cannot change installed theme files; store generated files in `wp-content/uploads` instead.
 - The `vendor/` directory, if the theme uses Composer packages.
 - A size of at most 50 MB once packed, and 200 MB unpacked.
-- For a child theme: a parent theme that DataSide provides.
+- For a child theme: a parent theme that DataSide provides. Another theme that you publish cannot be the parent.
+- A `theme` name of lower-case letters, digits, `-` and `_`, starting with a letter or digit, at most 64 characters.
 - No dependency on a WordPress plugin.

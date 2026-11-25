@@ -12,6 +12,9 @@ inputs:
   path:
     description: The directory that holds the built theme, relative to the workspace.
     required: true
+  theme:
+    description: The theme folder name under wp-content/themes, for example ruralaid.
+    required: true
   bind-code:
     description: The binding code from the DataSide email. Enter it only in the one manual run that creates the binding.
     required: false
@@ -34,5 +37,6 @@ runs:
       env:
         SITE: ${{ inputs.site }}
         THEME_PATH: ${{ inputs.path }}
+        THEME_NAME: ${{ inputs.theme }}
         BIND_CODE: ${{ inputs.bind-code }}
       run: '"$GITHUB_ACTION_PATH/publish.sh"'

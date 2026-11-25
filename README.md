@@ -1,6 +1,6 @@
 # Publish theme to DataSide
 
-This GitHub Action publishes a built WordPress theme to a DataSide site. It uploads the theme, waits while the site restarts with it, and reports whether the site accepted it. If the site rejects the theme, the site keeps its previous theme version and the run fails with the reason.
+This GitHub Action publishes a built WordPress theme to a DataSide site. It uploads the theme, waits while the site restarts with it, and reports whether the site accepted it. If the site rejects the theme, the run fails with the reason. The theme name keeps its newest good theme version, if it has one.
 
 For the full setup steps, read [Maintaining your DataSide WordPress theme from GitHub](docs/customer-theme-guide.md). This README covers only the action.
 
@@ -44,6 +44,7 @@ jobs:
                 && 'wordpress-prod.123456789012.app.dataside.cloud'
                 || 'wordpress-preprod.123456789012.app.dataside.cloud' }}
           path: dist/theme
+          theme: ruralaid                # the theme folder name under wp-content/themes
           bind-code: ${{ inputs.bind-code }}
 ```
 
@@ -57,6 +58,7 @@ To pin an exact version, replace `@v1` with the full commit SHA of a release. Th
 |---|---|---|
 | `site` | yes | The site's address, for example `wordpress-prod.123456789012.app.dataside.cloud`. It must end in `.app.dataside.cloud`. |
 | `path` | yes | The directory that holds the built theme, relative to the workspace. It must have `style.css` at its top level. |
+| `theme` | yes | The theme folder name under `wp-content/themes`, for example `ruralaid`. Use lower-case letters, digits, `-` and `_`, starting with a letter or digit, at most 64 characters. |
 | `bind-code` | no | The code from the DataSide email. Enter it only in the one manual run that links the repository to the site. |
 
 ## Outputs
@@ -71,7 +73,7 @@ To pin an exact version, replace `@v1` with the full commit SHA of a release. Th
 Each site accepts themes from one repository and one branch. You link them once per site:
 
 1. In the repository's **Actions** tab, choose **Run workflow** on the publishing branch, with the `bind-code` box empty. The run fails with "Binding requested", and your DataSide account email receives a code.
-2. Choose **Run workflow** again on the same branch, and paste the code into the `bind-code` box. This run links the repository to the site and publishes the theme.
+2. Choose **Run workflow** again on the same branch, and paste the code into the `bind-code` box. This run links the repository to the site and publishes the theme. If the site's active theme is not the theme named in `theme`, activate that theme once in WordPress admin, under **Appearance > Themes**.
 
 The code is valid for one use within 24 hours. After the link exists, every push to the publishing branch publishes. Do not put the code in the workflow file or in a repository secret; enter it only as the manual-run input.
 
@@ -83,6 +85,7 @@ The code is valid for one use within 24 hours. After the link exists, every push
 | This runner has no `jq` (or `curl`, `tar`). | A self-hosted runner lacks the tool. Install it, or use a GitHub-hosted runner. |
 | The site must be a DataSide host ending in .app.dataside.cloud | The `site` input is wrong. Use the site address from DataSide. |
 | The path '...' is not a directory. / has no style.css at its top level. | The `path` input does not point at the built theme. Check your build's output directory. |
+| The theme input must be a theme folder name: ... Got '...'. | The `theme` input is empty or has a character that is not allowed. Use a name such as `ruralaid`. |
 | The theme holds a symbolic link, which DataSide refuses | Replace the named link with a regular file or directory. |
 | The packed theme is ..., over the 50 MB limit. | Remove files the theme does not need at run time, for example source files and `node_modules`. |
 | Binding requested. DataSide has emailed a code... | The site has no link to a repository yet. Run the workflow again by hand with the code, as in "Linking the repository to a site". |
@@ -90,8 +93,10 @@ The code is valid for one use within 24 hours. After the link exists, every push
 | The theme API refused the binding code: ... | The code is wrong, expired, or was tried too many times. The message says which. Request a new code. |
 | The theme API refused the publish: ... | The site refused the theme. The message gives the reason, for example that the site is linked to another repository or branch. |
 | The theme API refused the publish for 20 minutes: ... | An earlier theme version stayed on trial for the whole time. The message gives the reason. Check the site, then run the workflow again. |
+| The theme API refused the commit: ... (trial-in-progress) | Another run's theme version went on trial after this run uploaded. Wait for that run to finish, then run this workflow again. |
 | S3 refused the upload: HTTP ... | The upload failed. Run the workflow again. If it fails again, contact DataSide support. |
 | DataSide rejected theme version ...: *reason* | The site checked the theme and refused it, for example `php-lint` for a PHP syntax error. The run annotates the file and line when known. The annotation points at the built theme, which is your source file only when the theme needs no build. Fix the cause and push again. |
+| DataSide rejected theme version ...: `reserved-name` | The `theme` input names a folder that WordPress or DataSide reserves. Choose another theme name. |
 | No result after 20 minutes. | The site did not report a result in time. Check the site, then run the workflow again. |
 
 If a run fails for another reason, contact DataSide support with the link to the failed workflow run.

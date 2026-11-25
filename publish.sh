@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Publishes a built WordPress theme to a DataSide site through the site's theme API.
 #
-# Inputs arrive as environment variables from action.yml: SITE, THEME_PATH and BIND_CODE.
+# Inputs arrive as environment variables from action.yml: SITE, THEME_PATH, THEME_NAME and BIND_CODE.
 # Never add `set -x` or `curl -v`: both print OIDC tokens and pre-signed URLs to the log.
 set -euo pipefail
 
@@ -79,6 +79,8 @@ done
   fail "The site must be a DataSide host ending in .app.dataside.cloud, not '${SITE:-}'."
 [[ -d ${THEME_PATH:-} ]] || fail "The path '${THEME_PATH:-}' is not a directory."
 [[ -f $THEME_PATH/style.css ]] || fail "The path '$THEME_PATH' has no style.css at its top level."
+[[ ${THEME_NAME:-} =~ ^[a-z0-9][a-z0-9_-]{0,63}$ ]] ||
+  fail "The theme input must be a theme folder name: lower-case letters, digits, - and _, starting with a letter or digit, at most 64 characters. Got '${THEME_NAME:-}'."
 
 # 3. Pack the theme.
 link=$(find "$THEME_PATH" -type l -print -quit)
@@ -141,7 +143,7 @@ fi
 
 # 7. Commit.
 echo "Committing theme version $publish_id"
-api POST /commit "$(jq -n --arg id "$publish_id" --arg sha256 "$sha256" '{publish_id: $id, sha256: $sha256}')"
+api POST /commit "$(jq -n --arg id "$publish_id" --arg sha256 "$sha256" --arg theme "$THEME_NAME" '{publish_id: $id, sha256: $sha256, theme: $theme}')"
 [[ $STATUS == 202 ]] || fail_api "the commit"
 echo "publish-id=$publish_id" >>"$OUTPUT"
 
@@ -155,8 +157,9 @@ while :; do
   case $status in
     good)
       echo "status=good" >>"$OUTPUT"
-      echo "Published theme version \`$publish_id\` to \`$SITE\`." >>"$SUMMARY"
-      echo "$SITE now serves theme version $publish_id"
+      msg="$SITE installed theme version $publish_id as \`$THEME_NAME\`. WordPress serves it while \`$THEME_NAME\` is the active theme."
+      echo "$msg" >>"$SUMMARY"
+      echo "$msg"
       exit 0
       ;;
     rejected)
@@ -168,7 +171,7 @@ while :; do
       if [[ -n $file ]]; then props+=("file=$(escape_property "$THEME_PATH/$file")"); fi
       if [[ -n $line ]]; then props+=("line=$(escape_property "$line")"); fi
       joined=$(IFS=,; echo "${props[*]}")
-      echo "::error${joined:+ $joined}::$(escape "DataSide rejected theme version $publish_id: ${reason:-no reason given}${file:+ in $file}${line:+ line $line}. The site keeps its previous theme version.")"
+      echo "::error${joined:+ $joined}::$(escape "DataSide rejected theme version $publish_id: ${reason:-no reason given}${file:+ in $file}${line:+ line $line}. \`$THEME_NAME\` keeps its newest good theme version, if it has one.")"
       exit 1
       ;;
     pending) ;;
