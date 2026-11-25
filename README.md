@@ -93,6 +93,7 @@ The code is valid for one use within 24 hours. After the link exists, every push
 | The theme API refused the binding code: ... | The code is wrong, expired, or was tried too many times. The message says which. Request a new code. |
 | The theme API refused the publish: ... | The site refused the theme. The message gives the reason, for example that the site is linked to another repository or branch. |
 | The theme API refused the publish for 20 minutes: ... | An earlier theme version stayed on trial for the whole time. The message gives the reason. Check the site, then run the workflow again. |
+| The theme API refused the commit: ... (trial-in-progress) | Another run's theme version went on trial after this run uploaded. Wait for that run to finish, then run this workflow again. |
 | S3 refused the upload: HTTP ... | The upload failed. Run the workflow again. If it fails again, contact DataSide support. |
 | DataSide rejected theme version ...: *reason* | The site checked the theme and refused it, for example `php-lint` for a PHP syntax error. The run annotates the file and line when known. The annotation points at the built theme, which is your source file only when the theme needs no build. Fix the cause and push again. |
 | DataSide rejected theme version ...: `reserved-name` | The `theme` input names a folder that WordPress or DataSide reserves. Choose another theme name. |
